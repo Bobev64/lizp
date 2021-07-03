@@ -1,10 +1,10 @@
 # This repo follows along with a book
 
-Most of the code in this repo follows along with the book [Build Your Own Lisp](http://buildyourownlisp.com/contents/)
+Most of the code in this repo follows along with the book [Build Your Own Lisp](http://buildyourownlisp.com/contents)
 
 Sources | Role
 --------|-------
-[Build Your Own Lisp](http://buildyourownlisp.com/contents/) | Primary
+[Build Your Own Lisp](http://buildyourownlisp.com/contents) | Primary
 
 ### How to Compile
 
