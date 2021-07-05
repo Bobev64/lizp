@@ -5,11 +5,14 @@ Most of the code in this repo follows along with the book [Build Your Own Lisp](
 Sources | Role
 --------|-------
 [Build Your Own Lisp](http://buildyourownlisp.com/contents) | Primary
+.
 
-### How to Compile
-
-On Linux you can compile the file prompt.c with 
+Should be compileable on Linux with
 ```bash
-gcc -leditline -Wall prompt.c -o prompt
+gcc -std=c99 -Wall prompt.c mpc.c -leditline -lm -o prompt
 ```
-It should also be compileable on Windows, however this is untested.
+
+You may also lack libeditline, if so, install on Debian based distros with
+```bash
+sudo apt-get install libeditline-dev
+```
