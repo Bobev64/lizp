@@ -21,9 +21,27 @@ void add_history(char* unused) {}
 #include <editline.h>
 #endif
 
+typedef struct {
+    int type;
+    long num;
+    int err;
+} lval;
+
 int number_of_nodes(mpc_ast_t* t);
-long eval(mpc_ast_t* t);
-long eval_op(long x, char* op, long y);
+lval eval(mpc_ast_t* t);
+lval eval_op(lval x, char* op, lval y);
+lval lval_num(long x);
+lval lval_err(int x);
+void lval_print(lval v);
+void lval_println(lval v);
+
+
+// Enumeration of possible error types
+enum { LERR_DIV_ZERO, LERR_BAD_OP, LERR_BAD_NUM };
+
+// Enumeration of possible lval types
+enum { LVAL_NUM, LVAL_ERR };
+
 
 int main(int argc, char** argv) {
     
@@ -42,25 +60,20 @@ int main(int argc, char** argv) {
           lizp        : /^/ <operator> <expr>+ /$/ ;             \
       ",
       Number, Operator, Expr, Lizp);
-   
-    puts("Lizp Version -1");
-    puts("Press Ctrl+c to exit");
+    
+    printf("Lizp Version -2\nPress Ctrl+c to exit\n");
 
     // C doesn't support bools in stdio.h so 1 suffices for true
     while(1) {
     
         char* input = readline("lizp> ");
-
         add_history(input);
 
         mpc_result_t r;
-
         if(mpc_parse("<stdin>", input, Lizp, &r)) {
-
-            long result = eval(r.output);
-            printf("%li\n", result);
+            lval result = eval(r.output);
+            lval_println(result);
             mpc_ast_delete(r.output);
-
         } else {
             mpc_err_print(r.error);
             mpc_err_delete(r.error);
@@ -85,18 +98,21 @@ int number_of_nodes(mpc_ast_t* t) {
     return 0;
 }
 
-long eval(mpc_ast_t* t) {
+lval eval(mpc_ast_t* t) {
 
     //returns number if it's tagged as such
     if (strstr(t->tag, "number")) {
-        return atoi(t->contents);
+        errno = 0;
+        long x = strtol(t->contents, NULL, 10);
+        //jmp
+        return errno != ERANGE ? lval_num(x) : lval_err(LERR_BAD_NUM);
     }
 
     // Operator is always second child
     char* op = t->children[1]->contents;
     
     // Store third value
-    long x = eval(t->children[2]);
+    lval x = eval(t->children[2]);
 
     // Iterate remaining values and combine
     int i = 3;
@@ -107,12 +123,59 @@ long eval(mpc_ast_t* t) {
     return x;
 }
 
-long eval_op(long x, char* op, long y) {
+lval eval_op(lval x, char* op, lval y) {
+   
+    // Returns either val if it's an error
+    if (x.type == LVAL_ERR) { return x; }
+    if (y.type == LVAL_ERR) { return y; }
 
-    if (strcmp(op, "+") == 0) { return x + y; }
-    if (strcmp(op, "-") == 0) { return x - y; }
-    if (strcmp(op, "/") == 0) { return x / y; }
-    if (strcmp(op, "*") == 0) { return x * y; }
+    if (strcmp(op, "+") == 0) { return lval_num(x.num + y.num); }
+    if (strcmp(op, "-") == 0) { return lval_num(x.num - y.num); }
+    if (strcmp(op, "*") == 0) { return lval_num(x.num * y.num); }
+    if (strcmp(op, "/") == 0) { 
+        return y.num == 0
+            ? lval_err(LERR_DIV_ZERO)
+            : lval_num(x.num / y.num);
+    }
 
-    return 0;
+    return lval_err(LERR_BAD_OP);
 }
+
+lval lval_num(long x) {
+    lval v;
+    v.type = LVAL_NUM;
+    v.num = x;
+    return v;
+}
+
+lval lval_err(int x) {
+    lval v;
+    v.type = LVAL_ERR;
+    v.err = x;
+    return v;
+}
+
+// Print lval
+void lval_print(lval v) {
+    switch(v.type) {
+        // If the type is a number, print, then break out of switch
+        case LVAL_NUM: printf("%li", v.num); break;
+
+        // If it's an error check what it is and print
+        case LVAL_ERR:
+            if (v.err == LERR_DIV_ZERO) {
+                printf("ERROR: Division by zero");
+            }
+            if (v.err == LERR_BAD_OP) {
+                printf("ERROR: Invalid operator");
+            }
+            if (v.err == LERR_BAD_NUM) {
+                printf("ERROR: Invalid number");
+            }
+        break;
+    }
+}
+
+void lval_println(lval v) { lval_print(v); putchar('\n'); }
+
+
