@@ -21,6 +21,12 @@ void add_history(char* unused) {}
 #include <editline.h>
 #endif
 
+// Enumeration of possible error types
+enum { LERR_DIV_ZERO, LERR_BAD_OP, LERR_BAD_NUM };
+
+// Enumeration of possible lval types
+enum { LVAL_NUM, LVAL_ERR };
+
 typedef struct {
     int type;
     long num;
@@ -34,14 +40,6 @@ lval lval_num(long x);
 lval lval_err(int x);
 void lval_print(lval v);
 void lval_println(lval v);
-
-
-// Enumeration of possible error types
-enum { LERR_DIV_ZERO, LERR_BAD_OP, LERR_BAD_NUM };
-
-// Enumeration of possible lval types
-enum { LVAL_NUM, LVAL_ERR };
-
 
 int main(int argc, char** argv) {
     
@@ -104,7 +102,6 @@ lval eval(mpc_ast_t* t) {
     if (strstr(t->tag, "number")) {
         errno = 0;
         long x = strtol(t->contents, NULL, 10);
-        //jmp
         return errno != ERANGE ? lval_num(x) : lval_err(LERR_BAD_NUM);
     }
 
